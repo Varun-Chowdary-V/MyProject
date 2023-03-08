@@ -1,0 +1,3 @@
+# Used to ignore some files that need not to be added to git
+node_modules
+logs
