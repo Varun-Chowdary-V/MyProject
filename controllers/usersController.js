@@ -1,5 +1,5 @@
-const User = require('./models/User')
-const Note = require('./models/Note')
+const User = require('../models/User')
+const Note = require('../models/Note')
 
 const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
@@ -8,10 +8,10 @@ const bcrypt = require('bcrypt')
 // @route GET /users
 // @access Private
 
-const getAllUsers = asyncHandler(async(req,res) => {
+const getAllUsers = asyncHandler(async (req,res) => {
     const users= await User.find().select('-password').lean()
     
-    if(!users) {
+    if(!users?.length) {
         return res.status(400).json({message:"No users found"})
     }
     res.json(users)
@@ -23,13 +23,13 @@ const getAllUsers = asyncHandler(async(req,res) => {
 // @access Private
 
 const createNewUser = asyncHandler(async(req,res) => {
-    const { username , password , roles } =req.body
+    const { username , password , roles , active} =req.body
 
     if(!username || ! Array.isArray(roles) || !roles.length){
         return res.status(400).json({message: 'All fields are mandatory'})
     }
 
-    const duplicates = await User.findOne({username}).lean().exec()
+    const duplicate = await User.findOne({username}).lean().exec()
 
     if(duplicate){
         return res.status(409).json({message:'Duplicate Username'})
@@ -38,7 +38,7 @@ const createNewUser = asyncHandler(async(req,res) => {
     
     const hashedPassword = await bcrypt.hash(password,10)
     
-    const userObject = { username,'password':hashedPassword, roles}
+    const userObject = { username,'password':hashedPassword, roles, active}
 
     const user= await User.create(userObject)
 
@@ -53,9 +53,9 @@ const createNewUser = asyncHandler(async(req,res) => {
 // @access Private
 
 const updateUser = asyncHandler(async(req,res) => {
-    const { username , password , roles } =req.body
+    const {id, username , password , roles , active } =req.body
 
-    if(!id || !username || ! Array.isArray(roles) || !roles.length || typeOf(active)!=boolean){
+    if(!id || !username || ! Array.isArray(roles) || !roles.length){
         return res.status(400).json({message: 'All fields are mandatory'})
     }
     const user = await User.findById(id).exec()
@@ -64,7 +64,7 @@ const updateUser = asyncHandler(async(req,res) => {
         return res.status(400).json({message:'User not found'})
     }
 
-    const duplicates = await User.findOne({username}).lean().exec()
+    const duplicate = await User.findOne({username}).lean().exec()
 
     if(duplicate && duplicate?._id.toString()!=id){
         return res.status(409).json({message:'Duplicate Username'})
@@ -106,7 +106,9 @@ const deleteUser = asyncHandler(async(req,res) => {
     
     const result = user.deleteOne()
 
-    const reply= `Username ${result.username} with id ${result._id} deleted`
+    const reply= `Username ${user.username} with id ${user._id} deleted`
 
     res.json(reply)
 })
+
+module.exports={getAllUsers,createNewUser,updateUser,deleteUser}
